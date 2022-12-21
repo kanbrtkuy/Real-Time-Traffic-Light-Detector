@@ -111,9 +111,9 @@ def run(model, img, stride, pt,
 def det_yolov7v6(info1):
     global model, stride, names, pt, jit, onnx, engine
     if info1[-3:] in ['jpg','png','jpeg','tif','bmp']:
-        image = cv2.imread(info1)  # 读取识别对象
+        image = cv2.imread(info1)  # Read Items
         try:
-            results = run(model, image, stride, pt)  # 识别， 返回多个数组每个第一个为结果，第二个为坐标位置
+            results = run(model, image, stride, pt)  # Recognize, return the results and location
             for i in results:
                 box = i[1]
                 p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
@@ -132,7 +132,7 @@ def det_yolov7v6(info1):
                     color = [0, 0, 255]
 
                     # ui.printf(
-                    # str(time.strftime('%Y.%m.%d %H:%M:%S ', time.localtime(time.time()))) + '警告！检测到机动车乱停放')
+                    # str(time.strftime('%Y.%m.%d %H:%M:%S ', time.localtime(time.time()))) + 'Detected Illegal parking of vehicles')
                 cv2.rectangle(image, p1, p2, color, thickness=3, lineType=cv2.LINE_AA)
         except:
             pass
@@ -152,30 +152,35 @@ def det_yolov7v6(info1):
 
             imagecopy = image.copy()
             frame_lwpCV = imagecopy
-            # 对帧进行预处理，先转灰度图，再进行高斯滤波。
-            # 用高斯滤波进行模糊处理，进行处理的原因：每个输入的视频都会因自然震动、光照变化或者摄像头本身等原因而产生噪声。对噪声进行平滑是为了避免在运动和跟踪时将其检测出来。
+            # The frame is preprocessed, the gray image is first transformed, and then the Gaussian filter is
+            # carried out.
+            # Gaussian filter is used for fuzzy processing. Reason for processing: each input video will generate noise
+            # due to natural vibration, illumination changes or the camera itself. Noise is smoothed to avoid detection
+            # during movement and tracking.
             gray_lwpCV = cv2.cvtColor(frame_lwpCV, cv2.COLOR_BGR2GRAY)
             gray_lwpCV = cv2.GaussianBlur(gray_lwpCV, (21, 21), 0)
 
-            # 将第一帧设置为整个输入的背景
+            # Set the first frame as the background for the entire input
             if background is None:
                 background = gray_lwpCV
                 continue
-            # 对于每个从背景之后读取的帧都会计算其与北京之间的差异，并得到一个差分图（different map）。
-            # 还需要应用阈值来得到一幅黑白图像，并通过下面代码来膨胀（dilate）图像，从而对孔（hole）和缺陷（imperfection）进行归一化处理
+            # For each frame read from the background, the difference between it and Beijing is calculated and a
+            # different map is obtained.
+            # You also need to apply the threshold to get a black and white image and dilate the image by the code
+            # below so that the holes and imperfection can be normalized
             diff = cv2.absdiff(background, gray_lwpCV)
-            diff = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)[1]  # 二值化阈值处理
-            diff = cv2.dilate(diff, es, iterations=2)  # 形态学膨胀
+            diff = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)[1]  # Binarized threshold processing
+            diff = cv2.dilate(diff, es, iterations=2)  # Morphological dilatation
             #ui.showimg(diff)
             #QApplication.processEvents()
             # 显示矩形框
             contours, hierarchy = cv2.findContours(diff.copy(), cv2.RETR_EXTERNAL,
-                                                   cv2.CHAIN_APPROX_SIMPLE)  # 该函数计算一幅图像中目标的轮廓
+                                                   cv2.CHAIN_APPROX_SIMPLE)  # This function computes the outline of an object in an image
             for c in contours:
-                if  cv2.contourArea(c) < 3000:  # 对于矩形区域，只显示大于给定阈值的轮廓，所以一些微小的变化不会显示。对于光照不变和噪声低的摄像头可不设定轮廓最小尺寸的阈值
+                if  cv2.contourArea(c) < 3000:  # For rectangular areas, only Outlines that are larger than a given threshold are shown, so some minor changes will not be shown. For cameras with constant illumination and low noise, the threshold of minimum contour size can not be set
                     continue
                 #print(cv2.contourArea(c))
-                (x, y, w, h) = cv2.boundingRect(c)  # 该函数计算矩形的边界框
+                (x, y, w, h) = cv2.boundingRect(c)  # This function evaluates the bounding box of a rectangle
                 # cv2.rectangle(frame_lwpCV, (x, y), (x+w, y+h), (0, 255, 0), 2)
                 tl = round(0.002 * (frame_lwpCV.shape[0] + frame_lwpCV.shape[1]) / 2) + 1  # line/font thickness
                 c1, c2 = (int(x), int(y)), (int(x + w), int(y + h))
@@ -197,7 +202,7 @@ def det_yolov7v6(info1):
 
 
             try:
-                results = run(model, imagecopy, stride, pt)  # 识别， 返回多个数组每个第一个为结果，第二个为坐标位置
+                results = run(model, imagecopy, stride, pt)  # Recognize, return multiple arrays each with the first result and the second coordinate position
                 is_green = False
                 for i in results:
                     if i[0] == 'G':
@@ -221,36 +226,36 @@ def det_yolov7v6(info1):
                     if (k1*xm1 +b1 - ym1) > 0 and  xm1 > 400 and xm1 < 1400:
                         if i[0] == 'person':
                             if is_green:
-                                color = [0, 255, 0] #绿灯时绿色框标注行人
+                                color = [0, 255, 0] # The green box marks pedestrians when the light is green
                                 cv2.rectangle(image, p1, p2, color, thickness=3, lineType=cv2.LINE_AA)
                             else:
-                                color = [0, 0, 255] #红灯时红色框标注行人
+                                color = [0, 0, 255] # Red boxes mark pedestrians at red lights
                                 cv2.rectangle(image, p1, p2, color, thickness=3, lineType=cv2.LINE_AA)
-                                ui.printf(time.strftime('%Y.%m.%d %H:%M:%S ', time.localtime(time.time())) + '警报！此时为红灯，有人在过马路')
-                                print(time.strftime('%Y.%m.%d %H:%M:%S ', time.localtime(time.time())) + '警报！此时为红灯，有人在过马路')
+                                ui.printf(time.strftime('%Y.%m.%d %H:%M:%S ', time.localtime(time.time())) + 'Alert! The light is red and someone is crossing the road')
+                                print(time.strftime('%Y.%m.%d %H:%M:%S ', time.localtime(time.time())) + 'Alert! The light is red and someone is crossing the road')
                             #ui.printf(
-                                #str(time.strftime('%Y.%m.%d %H:%M:%S ', time.localtime(time.time()))) + '警告！检测到机动车乱停放')
+                                #str(time.strftime('%Y.%m.%d %H:%M:%S ', time.localtime(time.time()))) + 'Warning! Vehicle parking is detected')
                         if i[0] == 'cane' or i[0] == 'wheelchair':
                             if is_green:
-                                color = [255, 0, 255] #紫色标注特殊人群
+                                color = [255, 0, 255] # Purple for special groups
                                 cv2.rectangle(image, p1, p2, color, thickness=3, lineType=cv2.LINE_AA)
                             else:
-                                color = [0, 0, 255]  # 红灯时红色框标注行人
+                                color = [0, 0, 255]  # Red boxes mark pedestrians at red lights
                                 cv2.rectangle(image, p1, p2, color, thickness=3, lineType=cv2.LINE_AA)
                                 ui.printf(time.strftime('%Y.%m.%d %H:%M:%S ',
-                                                        time.localtime(time.time())) + '警报！此时为红灯，有特殊人群在过马路')
+                                                        time.localtime(time.time())) + 'Alert! At this time, the red light, there are special people crossing the road')
                                 print(time.strftime('%Y.%m.%d %H:%M:%S ',
-                                                    time.localtime(time.time())) + '警报！此时为红灯，有特殊人群在过马路')
+                                                    time.localtime(time.time())) + 'Alert! At this time, the red light, there are special people crossing the road')
 
                     if i[0] == 'R':
-                        color = [0, 0, 255] #红色标注红灯
+                        color = [0, 0, 255] # Red box for Red light
                         cv2.rectangle(image, p1, p2, color, thickness=3, lineType=cv2.LINE_AA)
 
                     if i[0] == 'G':
-                        color = [0, 255, 0] #绿色标注绿灯
+                        color = [0, 255, 0] # Green box for Green light
                         cv2.rectangle(image, p1, p2, color, thickness=3, lineType=cv2.LINE_AA)
 
-                    if i[0] == 'Y': #黄色标注黄灯
+                    if i[0] == 'Y': # Yellow box for Yellow light
                         color = [0, 144, 255]
                         cv2.rectangle(image, p1, p2, color, thickness=3, lineType=cv2.LINE_AA)
 
@@ -263,7 +268,7 @@ def det_yolov7v6(info1):
             ui.showimg(image)
             QApplication.processEvents()
 
-class Thread_1(QThread):  # 线程1
+class Thread_1(QThread):  # Thread 1
     def __init__(self,info1):
         super().__init__()
         self.info1=info1
@@ -317,14 +322,14 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "行人过马路速度与交通灯实时监测系统"))
-        self.label.setText(_translate("MainWindow", "行人过马路速度与交通灯实时监测系统"))
-        self.label_2.setText(_translate("MainWindow", "请点击以添加视频"))
-        self.pushButton.setText(_translate("MainWindow", "选择对象"))
-        self.pushButton_2.setText(_translate("MainWindow", "系统开启"))
-        self.pushButton_3.setText(_translate("MainWindow", "退出系统"))
+        MainWindow.setWindowTitle(_translate("MainWindow", ""))
+        self.label.setText(_translate("MainWindow", ""))
+        self.label_2.setText(_translate("MainWindow", "Click to add video"))
+        self.pushButton.setText(_translate("MainWindow", "Choose Item"))
+        self.pushButton_2.setText(_translate("MainWindow", "Start Detection"))
+        self.pushButton_3.setText(_translate("MainWindow", "Quit"))
 
-        # 点击文本框绑定槽事件
+        # Click the text box Bind slot event
         self.pushButton.clicked.connect(self.openfile)
         self.pushButton_2.clicked.connect(self.click_1)
         self.pushButton_3.clicked.connect(self.handleCalc3)
@@ -338,7 +343,7 @@ class Ui_MainWindow(object):
             return
         filepath = os.path.normpath(fname)
         sname = filepath.split(os.sep)
-        ui.printf("当前选择的文件路径是：%s" % filepath)
+        ui.printf("Current Path：%s" % filepath)
 
 
     def handleCalc3(self):
@@ -373,14 +378,14 @@ class Ui_MainWindow(object):
             self.thread_1.quit()
         except:
             pass
-        self.thread_1 = Thread_1(filepath)  # 创建线程
+        self.thread_1 = Thread_1(filepath)  # Create thread
         self.thread_1.wait()
-        self.thread_1.start()  # 开始线程
+        self.thread_1.start()  # Start thread
 
 
 if __name__ == "__main__":
     global model, stride, names, pt, jit, onnx, engine
-    model, stride, names, pt, jit, onnx, engine = load_model()  # 加载模型
+    model, stride, names, pt, jit, onnx, engine = load_model()  # Load model
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
